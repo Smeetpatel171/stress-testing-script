@@ -1,20 +1,139 @@
-import asyncio
-import aiohttp
+import json
+from locust import HttpUser, task, between
+from random import choice
+import uuid
 
-API_URL = "https://yaapp-oct24-demo-371492433575.us-central1.run.app"  # Replace with your API endpoint
+class QuickieUser(HttpUser):
+    wait_time = between(1, 2)
 
-async def fetch(session, url, index):
-    async with session.get(url) as response:
-        data = await response.text()
-        print(f"Response {index}: {data}")
-        return data
+    def on_start(self):
+        with open('user_ids.json') as f:
+            self.user_ids = json.load(f)
+        self.index = 0
 
-async def main():
-    tasks = []
-    async with aiohttp.ClientSession() as session:
-        for i in range(50):  # 50 concurrent calls
-            tasks.append(fetch(session, API_URL, i))
-        await asyncio.gather(*tasks)
+    def get_user_id(self):
+        user_id = self.user_ids[self.index]
+        self.index = (self.index + 1) % len(self.user_ids)
+        return user_id
 
-if __name__ == "__main__":
-    asyncio.run(main())
+    def send_request(self, payload, name):
+        headers = {"Content-Type": "application/json"}
+        self.client.post(
+            "/api/quickie/user/coin-queue/pre-purchase",
+            json=payload,
+            headers=headers,
+            name=name
+        )
+
+    @task
+    def happy_path(self):
+        payload = {
+            "set_number": 1,
+            "package_number": 1,
+            "requested_coins": 27000,
+           "client_wallet_address": "0x89f04ad6e8002df05ade8c86625bd6b21c4ccf7b",
+            "user_wallet_address": "0x69177201691d284cb6828a36b38f82fee5ce064e",
+            "chain_type": "base",
+            "crypto_currency": "USDT",
+            "amount": 1,
+            "user_id": self.get_user_id()
+        }
+        self.send_request(payload, "actual API call")
+
+    @task
+    def limit_exceeded(self):
+        payload = {
+            "set_number": 1,
+            "package_number": 1,
+            "requested_coins": 1000000,  # Unrealistically high
+           "client_wallet_address": "0x89f04ad6e8002df05ade8c86625bd6b21c4ccf7b",
+            "client_wallet_address": "0x69177201691d284cb6828a36b38f82fee5ce064e",
+            "chain_type": "base",
+            "crypto_currency": "USDT",
+            "amount": 999999,
+            "user_id": self.get_user_id()
+        }
+        self.send_request(payload, "LimitExceeded")
+
+    @task
+    def stage_not_found(self):
+        payload = {
+            "set_number": 999,
+            "package_number": 999,
+            "requested_coins": 1,
+           "client_wallet_address": "0x89f04ad6e8002df05ade8c86625bd6b21c4ccf7b",
+            "client_wallet_address": "0x69177201691d284cb6828a36b38f82fee5ce064e",
+            "chain_type": "base",
+            "crypto_currency": "USDT",
+            "amount": 0.01,
+            "user_id": self.get_user_id()
+        }
+        self.send_request(payload, "StageNotFound")
+
+    @task
+    def not_enough_tokens(self):
+        payload = {
+            "set_number": 1,
+            "package_number": 1,
+            "requested_coins": 999999,  # Simulating more than available
+           "client_wallet_address": "0x89f04ad6e8002df05ade8c86625bd6b21c4ccf7b",
+            "client_wallet_address": "0x69177201691d284cb6828a36b38f82fee5ce064e",
+            "chain_type": "base",
+            "crypto_currency": "USDT",
+            "amount": 100000,
+            "user_id": self.get_user_id()
+        }
+        self.send_request(payload, "NotEnoughTokens")
+
+    @task
+    def invalid_user_id(self):
+        payload = {
+            "set_number": 1,
+            "package_number": 1,
+            "requested_coins": 1,
+           "client_wallet_address": "0x89f04ad6e8002df05ade8c86625bd6b21c4ccf7b",
+            "client_wallet_address": "0x69177201691d284cb6828a36b38f82fee5ce064e",
+            "chain_type": "base",
+            "crypto_currency": "USDT",
+            "amount": 0.01,
+            "user_id": "invalid-id"
+        }
+        self.send_request(payload, "InvalidUserID")
+
+    @task
+    def missing_required_fields(self):
+        payload = {
+            "user_id": self.get_user_id()  # Missing several required fields
+        }
+        self.send_request(payload, "MissingRequiredFields")
+
+    @task
+    def invalid_chain_type(self):
+        payload = {
+            "set_number": 1,
+            "package_number": 1,
+            "requested_coins": 1,
+           "client_wallet_address": "0x89f04ad6e8002df05ade8c86625bd6b21c4ccf7b",
+            "client_wallet_address": "0x69177201691d284cb6828a36b38f82fee5ce064e",
+            "chain_type": "invalid_chain",
+            "crypto_currency": "USDT",
+            "amount": 0.01,
+            "user_id": self.get_user_id()
+        }
+        self.send_request(payload, "InvalidChainType")
+
+    @task
+    def invalid_crypto_currency(self):
+        payload = {
+            "set_number": 1,
+            "package_number": 1,
+            "requested_coins": 1,
+           "client_wallet_address": "0x89f04ad6e8002df05ade8c86625bd6b21c4ccf7b",
+            "client_wallet_address": "0x69177201691d284cb6828a36b38f82fee5ce064e",
+            "chain_type": "base",
+            "crypto_currency": "BTC",  # Not allowed
+            "amount": 0.01,
+            "user_id": self.get_user_id()
+        }
+        self.send_request(payload, "InvalidCryptoCurrency")
+

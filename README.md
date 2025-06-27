@@ -1,1 +1,159 @@
-keval include the research in this file
+Below is a detailed `README.md` file for the load testing project described in your question. The `README` provides instructions on installation, tools required, and usage details.
+
+---
+
+## Load Testing with Locust
+
+This repository contains a setup for performing load testing using the [Locust](https://locust.io/) framework. The goal is to simulate user behavior and measure the performance of an API endpoint (`/api/quickie/user/coin-queue/pre-purchase`) under various loads.
+
+### Table of Contents
+1. [Overview](#overview)
+2. [Prerequisites](#prerequisites)
+3. [Setup](#setup)
+4. [Usage](#usage)
+5. [Files Overview](#files-overview)
+6. [Contributing](#contributing)
+
+---
+
+## Overview
+
+The project consists of two main components:
+1. **User Data Generation**: A MongoDB script to generate dummy users and export their IDs to a JSON file.
+2. **Load Testing with Locust**: A Python-based load testing script that simulates user requests to the target API endpoint.
+
+The workflow is as follows:
+- **Step 1**: Use the MongoDB script to generate dummy users and extract their IDs.
+- **Step 2**: Save the user IDs to a JSON file (`user_ids.json`).
+- **Step 3**: Use the Locust script to simulate user requests, iterating through the user IDs in a round-robin fashion.
+
+---
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+1. **MongoDB**:
+   - Install MongoDB Community Edition: [Download MongoDB](https://www.mongodb.com/try/download/community)
+   - Ensure MongoDB is running locally or accessible via a remote connection.
+
+2. **Python**:
+   - Python 3.7+ is required.
+   - Install Python from [python.org](https://www.python.org/downloads/).
+
+3. **Locust**:
+   - Install Locust using pip:
+     ```bash
+     pip install locust
+     ```
+
+4. **Node.js (Optional)**:
+   - If you plan to modify or extend the MongoDB script, Node.js may be required.
+
+---
+
+## Setup
+
+### Step 1: Generate Dummy Users and Export User IDs
+
+1. **Run the MongoDB Script**:
+   - Open a MongoDB shell or use a tool like Compass to execute the provided MongoDB script.
+   - The script generates `numberOfUsers` dummy users and inserts them into the `users` collection in your MongoDB database.
+   - After execution, it prints the `_id` values of the inserted users.
+
+2. **Export User IDs**:
+   - Use the following command in the MongoDB shell to export the user IDs to a JSON file:
+     ```javascript
+     db.users.find({}, { _id: 1 }).toArray().forEach(user => printjson(user._id));
+     ```
+   - Redirect the output to a file named `user_ids.json`:
+     ```bash
+     mongo <path-to-your-mongo-script.js> > user_ids.json
+     ```
+
+3. **Format the JSON File**:
+   - Ensure the `user_ids.json` file is properly formatted as a JSON array:
+     ```json
+     [
+       "<user_id_1>",
+       "<user_id_2>",
+       ...
+     ]
+     ```
+
+### Step 2: Install Dependencies
+
+1. **Install Locust**:
+   - If not already installed, run:
+     ```bash
+     pip install locust
+     ```
+
+2. **Clone the Repository**:
+   - Clone this repository to your local machine:
+     ```bash
+     git clone <repository-url>
+     cd <repository-directory>
+     ```
+
+3. **Prepare the Environment**:
+   - Ensure the `user_ids.json` file is present in the root directory of the project.
+
+---
+
+## Usage
+
+### Running the Locust Load Test
+
+1. **Start the Locust Master Node**:
+   - Navigate to the project directory:
+     ```bash
+     cd <repository-directory>
+     ```
+   - Run the Locust master node:
+     ```bash
+     locust -f index.py
+     ```
+   - This will start the Locust web UI at `http://localhost:8089`.
+
+2. **Configure and Start the Test**:
+   - Open the Locust web UI in your browser.
+   - Configure the number of users and hatch rate based on your testing requirements.
+   - Click the "Start Swarming" button to begin the load test.
+
+3. **Monitor Results**:
+   - The Locust web UI provides real-time statistics, including request rates, response times, and error rates.
+   - You can also export the results for further analysis.
+
+---
+
+## Files Overview
+
+### Directory Structure
+
+```
+.
+├── README.md          # This file
+├── index.py           # Locust load testing script
+├── seed_and_export_users.txt # MongoDB script for generating dummy users
+├── user_ids.json      # JSON file containing user IDs
+└── __pycache__        # Python cache directory (generated automatically)
+```
+
+### File Descriptions
+
+1. **`index.py`**:
+   - Contains the Locust test script.
+   - Simulates user requests to the `/api/quickie/user/coin-queue/pre-purchase` endpoint.
+   - Uses a round-robin approach to iterate through the user IDs in `user_ids.json`.
+
+2. **`seed_and_export_users.txt`**:
+   - A MongoDB script to generate dummy users and export their IDs.
+   - Modify the `numberOfUsers` variable to control the number of users generated.
+
+3. **`user_ids.json`**:
+   - A JSON file containing the `_id` values of the dummy users.
+   - Generated by the MongoDB script and used by the Locust test.
+
+4. **`__pycache__`**:
+   - Automatically generated by Python when scripts are executed.

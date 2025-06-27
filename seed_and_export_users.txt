@@ -1,0 +1,50 @@
+const numberOfUsers = 100; 
+
+function randomString(length) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for(let i=0; i<length; i++){
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+function generateDummyUser(i) {
+  const randomId = ObjectId();  // Use ObjectId() directly
+  const randomEmail = `testuser${i}@example.com`;
+  const randomChannelId = `channel_${randomString(8)}_${i}`;
+
+  return {
+    _id: randomId,
+    firstName: `TestFirstName${i}`,
+    lastName: `TestLastName${i}`,
+    displayName: `TestUser${i}`,
+    email: randomEmail,
+    emailVerification: true,
+    username: `testuser${i}`,
+    channelId: randomChannelId,
+    channelName: `ChannelName${i}`,
+    roles: ['user'],
+    created: new Date(),
+    vipOrdinal: i + 1,
+    vipTier: "BRONZE",  // Adjust based on your enum
+    vipStatus: "PENDING",
+    signUpSource: "QUICKCAM",
+    isVerified: true,
+    isDeleted: false,
+    isDeactivated: false,
+  };
+}
+
+const bulkUsers = [];
+for (let i = 0; i < numberOfUsers; i++) {
+  bulkUsers.push(generateDummyUser(i));
+}
+
+db.users.insertMany(bulkUsers);
+print(`Inserted ${bulkUsers.length} dummy users.`);
+
+
+
+//get the ids 
+db.users.find({}, { _id: 1 }).forEach(user => print(user._id));
