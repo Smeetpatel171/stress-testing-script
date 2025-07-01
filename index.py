@@ -18,12 +18,19 @@ class QuickieUser(HttpUser):
 
     def send_request(self, payload, name):
         headers = {"Content-Type": "application/json"}
-        self.client.post(
+        with self.client.post(
             "/api/quickie/user/coin-queue/pre-purchase",
             json=payload,
             headers=headers,
-            name=name
-        )
+            name=name,
+            catch_response=True  # Allows you to manually mark success/failure
+        ) as response:
+            if response.status_code != 201:
+                response.failure(f"Error: {response.status_code} - {response.text}")
+                raise Exception(f"Test failed for '{name}' with status {response.status_code}: {response.text}")
+            else:
+                response.success()
+
 
     @task
     def happy_path(self):
